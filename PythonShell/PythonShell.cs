@@ -13,10 +13,29 @@ namespace PythonShell
     {
         internal class PathResolver
         {
+            public static string GetExecutableFilePath(string fileName)
+            {
+                ProcessStartInfo psi = new ProcessStartInfo(@"C:\Windows\System32\where.exe", fileName);
+                psi.RedirectStandardOutput = true;
+                psi.RedirectStandardError = true;
+                psi.UseShellExecute = false;
+                psi.WindowStyle = ProcessWindowStyle.Hidden;
+                Process p = new Process();
+                p.StartInfo = psi;
+                p.Start();
+                string stdout = p.StandardOutput.ReadToEnd().TrimEnd();
+                p.WaitForExit();
+                p.Close();
+                return stdout == "" ? null : stdout;
+            }
             public static string GetPythonExecutableFilePath(PythonVersion pythonVersion)
             {
                 switch (pythonVersion)
                 {
+                    case PythonVersion.PythonW:
+                        return GetExecutableFilePath("pythonw.exe"); // TODO: Should this be cached?
+                    case PythonVersion.Python:
+                        return GetExecutableFilePath("python.exe"); // TODO: Should this be cached?
                     case PythonVersion.Pythonw27:
                         return @"C:\Python27\pythonw.exe";
                     case PythonVersion.Python27:
@@ -37,6 +56,10 @@ namespace PythonShell
         public enum PythonVersion
         {
             /// <summary>
+            /// Default executable pythonw.exe gets searched in %PATH%
+            /// </summary>
+            PythonW,
+            /// <summary>
             /// Default executable path: C:\Python27\pythonw.exe
             /// </summary>
             Pythonw27,
@@ -48,6 +71,10 @@ namespace PythonShell
             /// Default executable path: C:\Python34\pythonw.exe
             /// </summary>
             Pythonw34,
+            /// <summary>
+            /// Default executable python.exe gets searched in %PATH%
+            /// </summary>
+            Python,
             /// <summary>
             /// Default executable path: C:\Python27\python.exe
             /// Remember stdout is redirected so don't expect to watch output in console while running.
@@ -70,7 +97,7 @@ namespace PythonShell
     /// </summary>
     public class PythonShell
     {
-        public PythonShell(PythonVersion pythonVersion = PythonVersion.Pythonw34)
+        public PythonShell(PythonVersion pythonVersion = PythonVersion.PythonW)
         {
             this.PythonVersion = pythonVersion;
         }
@@ -82,7 +109,7 @@ namespace PythonShell
         /// The working directory passed to ProcessStartInfo.WorkingDirectory.
         /// </summary>
         public string WorkingDirectory;
-        public PythonVersion PythonVersion = PythonVersion.Pythonw34;
+        public PythonVersion PythonVersion = PythonVersion.PythonW;
         private StringBuilder StandardOutput = null;
         private StringBuilder StandardError = null;
 
